@@ -1,10 +1,11 @@
+.DS_Store
 __pycache__
 wandb
 .ipynb*
 third_party/*
 data/*
+max
 videos
 .pytest_cache
 checkpoints/*
 .vscode
-.DS_STORE
