@@ -1,0 +1,187 @@
+dreamer:
+  env: "beamrider"
+
+data:
+  data_keys: ["action", "obs", "reset"]
+  load_device: "cpu"
+  train_device: "cuda:0"
+  breakout:
+    use_sb3: True
+    dataset_names: ["breakout-expert-v2"]
+    dataset_path: "/data/atari_breakout/ppo/episodes/"
+    episode_limit: 125
+    world_models:
+      use_cached_features: True
+      sb3:
+        checkpoint_path: "../checkpoints/breakout/sb3/"
+        wm_fname: "sb3-model-1000000_steps.pth"
+        cached_features_path: "../data/breakout/breakout-ppo-ppo-features.npz"
+      d4rl:
+        checkpoint_path: "../checkpoints/breakout/d4rl/"
+        wm_fname: "model-1000000_steps.pth"
+        cached_features_path: "../data/breakout/exp-v2-cached.npz"
+  atari_pong:
+    use_sb3: True
+    dataset_path: "/data/atari_pong/ppo/episodes/"
+    episode_limit: -1
+    world_models:
+      use_cached_features: True
+      sb3:
+        checkpoint_path: "../checkpoints/atari_pong/ppo/"
+        wm_fname: "pong-ppo-best.pth"
+        cached_features_path: "../data/atari_pong/pong-ppo-features.npz"
+  beamrider:
+    use_sb3: True
+    dataset_path: "/data/beamrider/ppo/episodes/"
+    episode_limit: 15 #4, 8, 15
+    world_models:
+      use_cached_features: True
+      sb3:
+        checkpoint_path: "../checkpoints/beamrider/ppo/"
+        wm_fname: "beamrider-ppo-best.pth"
+        cached_features_path: "../data/beamrider/beamrider-ppo-features.npz"
+  mspacman:
+    use_sb3: True
+    dataset_path: "/data/mspacman/ppo/episodes/"
+    episode_limit: 4
+    world_models:
+      use_cached_features: True
+      sb3:
+        checkpoint_path: "../checkpoints/mspacman/ppo/"
+        wm_fname: "mspacman-ppo-best.pth"
+        cached_features_path: "../data/mspacman/mspacman-ppo-features.npz"
+  qbert:
+    use_sb3: True
+    dataset_path: "/data/qbert/ppo/episodes/"
+    episode_limit: -1
+    world_models:
+      use_cached_features: True
+      sb3:
+        checkpoint_path: "../checkpoints/qbert/ppo/"
+        wm_fname: "qbert-ppo-best.pth"
+        cached_features_path: "../data/qbert/ppo/qbert-ppo-features.npz"
+  spaceInvaders:
+    use_sb3: True
+    dataset_path: "/data/spaceInvaders/a2c/episodes/"
+    episode_limit: -1
+    world_models:
+      use_cached_features: True
+      sb3:
+        checkpoint_path: "../checkpoints/spaceInvaders/a2c/"
+        wm_fname: "spaceInvaders-a2c-best.pth"
+        cached_features_path: "none"
+
+envs:
+  breakout:
+    env_id: "BreakoutNoFrameskip-v4"
+    observation_type: "pixels"
+    action_dim: 18
+    observation_space: []
+    action_type: "discrete"
+    pixel_stats:
+      mean: 33.0
+      std: 55.0
+  atari_pong:
+    env_id: "PongNoFrameskip-v4"
+    observation_type: "pixels"
+    action_dim: 18
+    observation_space: []
+    action_type: "discrete"
+    pixel_stats:
+      mean: 106.0
+      std: 47.0
+  beamrider:
+    env_id: "BeamRiderNoFrameskip-v4"
+    observation_type: "pixels"
+    action_dim: 18
+    observation_space: []
+    action_type: "discrete"
+    pixel_stats:
+      mean: 17.0
+      std: 36.0
+  bipedalwalker:
+    env_id: "BipedalWalker-v3"
+    observation_type: "vecobs"
+    observation_space: []
+    action_dim: 4
+    action_type: "continuous"
+    pixel_stats:
+      mean: 210.0
+      std: 48.0
+  mspacman:
+    env_id: "MsPacmanNoFrameskip-v4"
+    observation_type: "pixels"
+    action_dim: 18
+    observation_space: []
+    action_type: "discrete"
+    pixel_stats:
+      mean: 59.0
+      std: 51.0
+  qbert:
+    env_id: "QbertNoFrameskip-v4"
+    observation_type: "pixels"
+    action_dim: 18
+    observation_space: []
+    action_type: "discrete"
+    pixel_stats:
+      mean: 34.0
+      std: 52.0
+  spaceInvaders:
+    env_id: "SpaceInvadersNoFrameskip-v4"
+    observation_type: "pixels"
+    action_dim: 18
+    observation_space: []
+    action_type: "discrete"
+    pixel_stats:
+      mean: 10.0
+      std: 25.0
+
+agent:
+  architecture:
+    hidden_dim: 256
+    layers: 8
+    action_dim: 4
+  training:
+    do_checkpoint: True
+    batch_size: 512
+    seq_length: 15
+    lr: 3e-4
+    gamma: 0.95
+    lambda_gae: 0.95
+    entropy: 0.003
+    target_interval: 100
+    actor_grad: reinforce
+    actor_dist: onehot
+    validation:
+      n_games: 12
+      n_env: 12
+
+wm: #wm_config
+  training: # trainer_config
+    batch_size: 50
+    seq_length: 50
+    validation:
+      do_val: True
+      batch_size: 128
+      seq_length: 50
+    optimizer:
+      eps: 1e-5
+      lr: 3e-4
+    loss_weights:
+      image_weight: 2.0
+      kl_balance: 0.8
+      kl_weight: 0.1
+    checkpoints:
+      do_checkpoint: True
+      savepoints: [500, 1000, 5000, 10000, 50000, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1500000, 2000000]
+  architecture:
+    latents:
+      deter_dim: 1024
+      stoch_dim: 32
+      stoch_rank: 32
+    cnn:
+      cnn_depth: 48
+      image_channels: 1
+    rssm:
+      hidden_dim: 1000
+      gru_layers: 1

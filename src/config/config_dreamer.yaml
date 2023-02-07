@@ -1,0 +1,100 @@
+base:
+  n_env: 1
+  deter_dim: 2048
+  stoch_dim: 32
+  stoch_discrete: 32
+  hidden_dim: 1000
+  embed_dim: 1024
+  gru_layers: 1
+  cnn_depth: 48
+  lr: 1e-4
+  train_device: "cuda:0"
+  checkpoint_path: "../checkpoints/breakout/"
+  do_val: True
+  do_checkpoint: True
+
+dreamer:
+  wm_checkpoint: "../checkpoints/breakout/model-1000000_steps.pth"
+  batch_size: 100
+  batch_length: 15
+
+  # Actor Critic
+agent:
+  lr: 3e-4
+  gamma: 0.995
+  lambda_gae: 0.95
+  entropy: 0.003
+  target_interval: 100
+  imag_horizon: 15
+  actor_grad: reinforce
+  actor_dist: onehot
+
+data:
+  train:
+    data_path: "../data/breakout/valf/"
+    batch_size: 100
+    batch_length: 15
+    load_device: "cpu"
+    episode_limit: -1
+  val:
+    data_path: "../data/breakout/valf/"
+    batch_size: 100
+    batch_length: 15
+    load_device: "cpu"
+    episode_limit: -1
+
+cartpole:
+  env_id: "CartPole-v1"
+  action_type: Discrete
+  action_dim: 2
+  observation_type: vecobs
+  observation_space: [4]
+  n_stack: 1
+
+bipedalwalker:
+  env_id: "BipedalWalker-v3"
+  action_type: Continuous
+  action_dim: 4
+  observation_type: vecobs
+  observation_space: [24]
+  n_stack: 1
+
+bipedalwalkerhardcore:
+  env_id: "BipedalWalkerHardcore-v3"
+  action_type: Continuous
+  action_dim: 4
+  observation_type: vecobs
+  observation_space: [24]
+  n_stack: 1
+
+atari_pong:
+  env_id: 'PongNoFrameskip-v4'
+  action_type: Discrete
+  observation_type: pixels
+  observation_space: [84,84,1]
+  n_stack: 4
+  encoder_type: "cnn"
+  image_decoder: "cnn"
+  deter_dim: 1024
+  kl_balance: 0.8
+  kl_weight: 0.1
+  image_weight: 1.0
+  action_dim: 18
+  n_channels: 1
+  image_channels: 1
+
+atari_breakout:
+  env_id: 'BreakoutNoFrameskip-v4'
+  action_type: Discrete
+  observation_type: pixels
+  observation_space: [84,84,1]
+  n_stack: 4
+  encoder_type: "cnn"
+  image_decoder: "cnn"
+  deter_dim: 1024
+  kl_balance: 0.8
+  kl_weight: 0.1
+  image_weight: 3.0
+  action_dim: 18
+  n_channels: 1
+  image_channels: 1

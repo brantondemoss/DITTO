@@ -1,0 +1,16 @@
+torch
+gym==0.21.0
+wandb
+numpy
+prettytable
+opencv-python
+tqdm
+stable_baselines3
+pygame
+numba
+pyvirtualdisplay
+glob2
+pathtools
+pyyaml
+ml-collections
+git+https://github.com/takuseno/d4rl-atari
