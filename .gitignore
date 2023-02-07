@@ -1,0 +1,10 @@
+__pycache__
+wandb
+.ipynb*
+third_party/*
+data/*
+videos
+.pytest_cache
+checkpoints/*
+.vscode
+.DS_STORE
