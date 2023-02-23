@@ -5,7 +5,7 @@
 ## Getting Started
 Code is currently considered pre-release, and not ready for significant external use. Beware.
 
-To get started quickly, download the following tarball:
+To get started quickly, download and unpack the following tarball:
 ```sh
 wget https://www.robots.ox.ac.uk/\~bdemoss/testdata.tar.gz
 ```
