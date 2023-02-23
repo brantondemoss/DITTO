@@ -286,10 +286,14 @@ class ACTrainer(object):
         if norm:
             advantage = (advantage - advantage.mean())/(advantage.std() + 1e-8)
 
+        # supposedly clipping advantages to only positive values helps
+        # will try torch.relu(advantage) later
+        # also will try squashing returns with symlog according to Dreamerv3
         return advantage
 
     @staticmethod
     def calculate_losses(ac_buffer, returns, advantage):
+        # computes reinforce (policy) loss and value loss
         log_probs = torch.stack([log_prob for (log_prob, value) in ac_buffer])
         policy_loss = (-log_probs[:-1] * advantage.detach()[:-1]).mean()
 
