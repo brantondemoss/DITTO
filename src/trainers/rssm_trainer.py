@@ -6,6 +6,7 @@ import yaml
 from data.common import EquiSampler, transpose_collate
 from data.d4rl_dataset import D4RLDataset
 from data.wm_dataset import WorldModelDataset
+from src.data.calvin_dataset import CalvinDataset
 from models.world_model import WorldModelRSSM
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, Subset
@@ -73,6 +74,9 @@ class RSSMTrainer(object):
 
     def build_dataloaders(self, dataset_config):
         print("Building dataset..")
+        #if True:
+        #    datamodule = CalvinDataModule()
+        #else:
         dataset = D4RLDataset(dataset_config)
         train_dataset, val_dataset = self.val_train_split(dataset)
 
