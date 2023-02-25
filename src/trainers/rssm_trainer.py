@@ -19,6 +19,8 @@ class RSSMTrainer(object):
     def __init__(self, root_conf):
         super().__init__()
 
+        #print('root conf', root_conf)
+        self.env_type = root_conf.raw.dreamer.env
         self.conf = root_conf.trainer_config
         self.device = self.conf.train_device
         self.batch_size = self.conf.batch_size
@@ -74,11 +76,12 @@ class RSSMTrainer(object):
 
     def build_dataloaders(self, dataset_config):
         print("Building dataset..")
-        #if True:
-        #    datamodule = CalvinDataModule()
-        #else:
-        dataset = D4RLDataset(dataset_config)
-        train_dataset, val_dataset = self.val_train_split(dataset)
+        if self.env_type == "calvin":
+            train_dataset = CalvinDataset(dataset_config, train=True)
+            val_dataset = CalvinDataset(dataset_config, train=False)
+        else:
+            dataset = D4RLDataset(dataset_config)
+            train_dataset, val_dataset = self.val_train_split(dataset)
 
         print("Building dataloaders..")
         train_dataloader = self.build_dataloader(train_dataset, dataset_config)

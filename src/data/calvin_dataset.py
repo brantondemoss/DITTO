@@ -3,20 +3,28 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm.auto import tqdm 
 import glob
 import numpy as np
-from common import EquiSampler, transpose_collate
+#from src.common import EquiSampler, transpose_collate
 
 class CalvinDataset(Dataset):
-    def __init__(self, dataset_config):
-        #self.action_type = dataset_config.action_type
-        self.seq_length = 5 #dataset_config.seq_length
-        #self.device = dataset_config.load_device
+    def __init__(self, dataset_config, train=True):
+        self.action_type = dataset_config.action_type
+        self.seq_length = dataset_config.seq_length #dataset_config.seq_length
+        self.device = dataset_config.load_device
         self.num_transitions = 0
-        self.data_keys = dataset_config["data_keys"]
+        self.data_keys = dataset_config.data_keys
         
-        self.obs_mean = 138.9931
-        self.obs_std = 65.1393
+        self.pixel_mean = dataset_config.pixel_mean
+        self.pixel_std = dataset_config.pixel_std
         
+        self.pixel_mean = 138.9931
+        self.pixel_std = 65.1393
         
+        if train:
+            self.data_path = "/home/alex/repos/calvin/dataset/calvin_debug_dataset/training" # NOTE THis is hardcoded
+        else:
+            self.data_path = "/home/alex/repos/calvin/dataset/calvin_debug_dataset/validation"
+        
+        self.data = self.load_files(self.data_path)
         
     def load_files(self, path):
         data = {k: [] for k in self.data_keys}
@@ -34,7 +42,7 @@ class CalvinDataset(Dataset):
             obs_key = "rgb_static"
             
             # TODO add normalisation (fix functions)
-            data["actions"].extend(self._fix_actions(npz_dict["actions"]))
+            data["action"].extend(self._fix_actions(npz_dict["actions"]))
             data["obs"].extend(self._fix_obs(npz_dict[obs_key]))
             if idx in start_ids:
                 data["reset"].extend([True])
@@ -51,7 +59,7 @@ class CalvinDataset(Dataset):
     def _fix_obs(self, img):
         img = np.moveaxis(img, -1, 0)
         img = np.expand_dims(img, 0)
-        img = (img - self.obs_mean) / self.obs_std
+        img = (img - self.pixel_mean) / self.pixel_std
         return img
             
     def _fix_actions(self, action):
@@ -77,7 +85,7 @@ class CalvinDataset(Dataset):
         ret = {"action": action, "obs": obs, "reset": reset}
         return ret
 
-    def get_trains(self, idx):
+    def get_trans(self, idx):
         action, obs, reset = \
             [self.data[key][idx].unsqueeze(0).unsqueeze(0)
              for key in self.data_keys]

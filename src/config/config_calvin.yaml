@@ -1,0 +1,83 @@
+dreamer:
+  env: "calvin"
+  
+data:
+  data_keys: ["action", "obs", "reset"]
+  load_device: "cpu"
+  train_device: "cuda:0"
+  calvin:
+    use_sb3: True  # TODO update
+    dataset_names: ["breakout-expert-v2"]
+    dataset_path: "/data/atari_breakout/ppo/episodes/"
+    episode_limit: 125
+    world_models:
+      use_cached_features: True
+      sb3:
+        checkpoint_path: "../checkpoints/breakout/sb3/"
+        wm_fname: "sb3-model-1000000_steps.pth"
+        cached_features_path: "../data/breakout/breakout-ppo-ppo-features.npz"
+      d4rl:
+        checkpoint_path: "../checkpoints/breakout/d4rl/"
+        wm_fname: "model-1000000_steps.pth"
+        cached_features_path: "../data/breakout/exp-v2-cached.npz"
+
+envs:
+  calvin:
+    env_id: "Calvin-v1"
+    observation_type: "pixels"
+    action_dim: 7
+    observation_space: []
+    action_type: "continuous" # TODO update
+    pixel_stats:
+      mean: 33.0
+      std: 55.0
+
+agent:
+  architecture:
+    hidden_dim: 256
+    layers: 8
+    action_dim: 4
+  training:
+    do_checkpoint: True
+    batch_size: 512
+    seq_length: 15
+    lr: 3e-4
+    gamma: 0.95
+    lambda_gae: 0.95
+    entropy: 0.003
+    target_interval: 100
+    actor_grad: reinforce
+    actor_dist: onehot
+    validation:
+      n_games: 12
+      n_env: 12
+
+wm: #wm_config
+  training: # trainer_config
+    batch_size: 50
+    seq_length: 50
+    validation:
+      do_val: True
+      batch_size: 128
+      seq_length: 50
+    optimizer:
+      eps: 1e-5
+      lr: 3e-4
+    loss_weights:
+      image_weight: 2.0
+      kl_balance: 0.8
+      kl_weight: 0.1
+    checkpoints:
+      do_checkpoint: True
+      savepoints: [500, 1000, 5000, 10000, 50000, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1500000, 2000000]
+  architecture:
+    latents:
+      deter_dim: 1024
+      stoch_dim: 32
+      stoch_rank: 32
+    cnn:
+      cnn_depth: 48
+      image_channels: 1
+    rssm:
+      hidden_dim: 1000
+      gru_layers: 1
