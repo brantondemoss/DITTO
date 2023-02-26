@@ -29,8 +29,8 @@ envs:
     observation_space: []
     action_type: "continuous" # TODO update
     pixel_stats:
-      mean: 33.0
-      std: 55.0
+      mean: 138.9931
+      std: 65.1393
 
 agent:
   architecture:
@@ -77,7 +77,7 @@ wm: #wm_config
       stoch_rank: 32
     cnn:
       cnn_depth: 48
-      image_channels: 1
+      image_channels: 3
     rssm:
       hidden_dim: 1000
       gru_layers: 1

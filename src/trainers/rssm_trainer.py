@@ -35,15 +35,16 @@ class RSSMTrainer(object):
 
         
         # this is here b/c I fucked up
-        model_path = root_conf.ac_trainer_config.wm_path
-        print('Got model path', model_path)
-        # this dict contains keys: steps, model_state_dict, optimizer_state_dict
-        checkpoint = torch.load(model_path)
-        self.start_steps = checkpoint['steps']
-        print('Got start_steps =',self.start_steps,'from loaded state dict')
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        print('loaded from state dict', model_path)
+        if False:
+            model_path = root_conf.ac_trainer_config.wm_path
+            print('Got model path', model_path)
+            # this dict contains keys: steps, model_state_dict, optimizer_state_dict
+            checkpoint = torch.load(model_path)
+            self.start_steps = checkpoint['steps']
+            print('Got start_steps =',self.start_steps,'from loaded state dict')
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            print('loaded from state dict', model_path)
 
         self.scaler = GradScaler(enabled=True)
 
@@ -95,6 +96,7 @@ class RSSMTrainer(object):
     def train(self):
         while True:
             in_states = self.model.init_state(self.batch_size)
+            #print('data loader', self.dataloaders["train"].__next__())
             for batch in self.dataloaders["train"]:
                 obs = {k: v.to(self.device) for k, v in batch.items()}
                 self.optimizer.zero_grad()

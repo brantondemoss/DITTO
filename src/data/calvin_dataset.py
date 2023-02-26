@@ -16,10 +16,10 @@ class CalvinDataset(Dataset):
         self.pixel_mean = dataset_config.pixel_mean
         self.pixel_std = dataset_config.pixel_std
         
-        self.pixel_mean = 138.9931
-        self.pixel_std = 65.1393
+        #self.pixel_mean = 138.9931
+        #self.pixel_std = 65.1393
         
-        if train:
+        if train: # TODO unhardcode paths
             self.data_path = "/home/alex/repos/calvin/dataset/calvin_debug_dataset/training" # NOTE THis is hardcoded
         else:
             self.data_path = "/home/alex/repos/calvin/dataset/calvin_debug_dataset/validation"
@@ -31,7 +31,7 @@ class CalvinDataset(Dataset):
         print("loading dataset from", path)
         
         start_ids = self._ep_start_ids(path)
-        print('start ids', start_ids)
+        #print('start ids', start_ids)
         filenames = glob.glob(path+'/*.npz')
         print(f'got {len(filenames)} files...')
         self.num_transitions = len(filenames)
@@ -79,8 +79,14 @@ class CalvinDataset(Dataset):
             [self.data[key][idx:end_idx] for key in self.data_keys]
         
         pad_size = end_idx-self.num_transitions
-        #if pad_size>0:
-        # TODO maybe add padding? seems like the above line will throw an error first tho
+        if pad_size>0:
+            print(f' pad size >0, end idx {end_idx}, {self.num_transitions} idx {idx}')
+            action = torch.cat((action, self.data['action'][:pad_size]), dim=0)
+            obs = torch.cat(
+                (obs, self.data['obs'][:pad_size]), dim=0)
+            reset = torch.cat((reset, self.data['reset'][:pad_size]), dim=0)
+        
+        # TODO  ask Branton why this does not throw an error. seems like the above line will throw an error first tho
         
         ret = {"action": action, "obs": obs, "reset": reset}
         return ret
