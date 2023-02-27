@@ -15,7 +15,7 @@ from trainers.metrics import MetricsHelper
 
 
 class RSSMTrainer(object):
-    def __init__(self, root_conf):
+    def __init__(self, root_conf, from_scratch=True):
         super().__init__()
 
         self.conf = root_conf.trainer_config
@@ -32,15 +32,18 @@ class RSSMTrainer(object):
 
         
         # this is here b/c I fucked up
-        model_path = root_conf.ac_trainer_config.wm_path
-        print('Got model path', model_path)
-        # this dict contains keys: steps, model_state_dict, optimizer_state_dict
-        checkpoint = torch.load(model_path)
-        self.start_steps = checkpoint['steps']
-        print('Got start_steps =',self.start_steps,'from loaded state dict')
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        print('loaded from state dict', model_path)
+        if not from_scratch:
+            model_path = root_conf.ac_trainer_config.wm_path
+            print('Got model path', model_path)
+            # this dict contains keys: steps, model_state_dict, optimizer_state_dict
+            checkpoint = torch.load(model_path)
+            self.start_steps = checkpoint['steps']
+            print('Got start_steps =',self.start_steps,'from loaded state dict')
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            print('loaded from state dict', model_path)
+        else:
+            self.start_steps = 0
 
         self.scaler = GradScaler(enabled=True)
 
@@ -51,6 +54,7 @@ class RSSMTrainer(object):
         self.do_checkpoint = self.conf.checkpoints.do_checkpoint
         self.checkpoints = self.conf.checkpoints.savepoints
         self.checkpoint_path = self.conf.checkpoints.path
+        print('Got checkpoint path', self.checkpoint_path)
         self.c_idx = 0
 
     def val_train_split(self, dataset, split=0.9):

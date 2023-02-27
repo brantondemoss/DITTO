@@ -47,25 +47,29 @@ class Episode(object):
         # print(self.infos)
 
     def reshape_img(self, img, new_hw=64):
-        img = img.astype(np.uint8)
+        img = np.squeeze(img.astype(np.uint8))
         img = np.array(cv2.resize(img, dsize=(
             new_hw, new_hw), interpolation=cv2.INTER_AREA))
         img = np.expand_dims(img, 2)
         return img
 
     def rgb2gray(self, rgb):
-        return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
+        if rgb.shape[-1] == 3:
+            return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
+        else: return rgb
 
     def push(self, obs, reward, action, terminal, info):
         # obs = self.reshape_img(obs)
-        # assert obs.shape == (84, 84, 1)
-        self.observations.append(obs)
-        self.rewards.append(reward)
-        self.actions.append(action)
-        self.terminals.append(terminal)
+        #assert obs.shape == (84, 84, 1), print(obs.shape)
+        obs = self.reshape_img(obs)
         if "img" in info:
             # print("here")
             info["img"] = self.reshape_img(self.rgb2gray(info["img"]))
+        self.observations.append(obs)
+
+        self.rewards.append(reward)
+        self.actions.append(action)
+        self.terminals.append(terminal)
         self.infos.append(info)
         self.length += 1
 
@@ -95,9 +99,9 @@ class ReplayBuffer(object):
         pathlib.Path(savepath).mkdir(parents=True, exist_ok=True)
         vecobs = None
         if episode.vecobs:
-            # print("Here")
+            #print('ep obs len', len(episode.observations))
+            #print([(i,episode.observations[i].shape) for i in [0,1,-2,-1]])
             vecobs = np.array(episode.observations)
-            # print(episode.infos)
             images = np.array([info["img"] for info in episode.infos])
         else:
             images = np.array(episode.observations)
@@ -108,8 +112,9 @@ class ReplayBuffer(object):
         resets = np.zeros((episode.length), dtype=bool)
         resets[0] = True
         print(f"{savepath}/episode-{self.size}")
-        np.savez(f"{savepath}/episode-{self.size}", image=images, vecobs=vecobs,
-                 action=actions, reward=rewards, terminal=terminals, reset=resets)
+        print()
+        np.savez(f"{savepath}/episode-{self.size}", images=images, vecobs=vecobs,
+                 actions=actions, rewards=rewards, terminals=terminals, resets=resets)
         self.size += 1
 
     def save(self, buffer_save_path):
@@ -131,8 +136,8 @@ class ReplayBuffer(object):
             resets = np.zeros((episode.length), dtype=bool)
             resets[0] = True
             print(f"{buffer_save_path}/episode-{i}")
-            np.savez(f"{buffer_save_path}/episode-{i}", image=images, vecobs=vecobs,
-                     action=actions, reward=rewards, terminal=terminals, reset=resets)
+            np.savez(f"{buffer_save_path}/episode-{i}", images=images, vecobs=vecobs,
+                     actions=actions, rewards=rewards, terminals=terminals, resets=resets)
 
     def load(self, buffer_load_path, allow_pickle=True):
         self.episodes = np.load(buffer_load_path, allow_pickle=allow_pickle)

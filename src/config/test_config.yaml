@@ -8,7 +8,7 @@ data:
   breakout:
     use_sb3: True
     dataset_names: ["breakout-expert-v2"] # old param for d4rl data, deprecated
-    dataset_path: "/data/atari_breakout/ppo/test/" # path to episode data (npz format)
+    dataset_path: "../data/test/episodes" # path to episode data (npz format)
     episode_limit: 125 # max num episodes to read in
     world_models:
       use_cached_features: False # loads cached latent features if they exist, otherwise infers from world model
@@ -63,7 +63,7 @@ agent:
 
 wm: #wm_config
   training: # trainer_config
-    batch_size: 50
+    batch_size: 2
     seq_length: 50
     validation:
       do_val: True
@@ -78,7 +78,7 @@ wm: #wm_config
       kl_weight: 0.1
     checkpoints:
       do_checkpoint: True
-      savepoints: [500, 1000, 5000, 10000, 50000, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1500000, 2000000]
+      savepoints: [10, 500, 1000, 5000, 10000, 50000, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1500000, 2000000]
   architecture:
     latents:
       deter_dim: 1024

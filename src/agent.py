@@ -121,7 +121,7 @@ class Agent:
     @staticmethod
     def add_transition(env, action, state, reward, done, episode: Episode, info):
         if env.n_stack > 1:
-            state = state[..., -1]
+            state = state[-1]
         else:
             state = state
             # print(state.shape, "ajajaj")
@@ -136,6 +136,7 @@ class Agent:
         is_monitor_wrapped = is_vecenv_wrapped(
             self.env, VecMonitor) or self.env.env_is_wrapped(Monitor)[0]
 
+        # this has dims (n_envs, n_stack, *obs_shape)
         last_states = self.env.reset()
         # print(last_states.shape, "Hereeeeeee")
         hidden_states = None
@@ -144,7 +145,8 @@ class Agent:
         episode_starts = np.ones((n_envs), dtype=bool)
         info = {"img": self.env.render(mode="rgb_array")}
 
-        episodes = [Episode(last_states[i], info=info) for i in range(n_envs)]
+        # inits n_env episodes with starting states. -1 to grab last frame (default 4 frames per obs in Atari)
+        episodes = [Episode(last_states[i, -1], info=info) for i in range(n_envs)]
 
         pbar = tqdm(total=n_episodes)
 
@@ -174,8 +176,10 @@ class Agent:
                             print("Saving..")
                             self.replay_buffer.save_one(episodes[i], savepath)
                         else:
+                            # you need to run Agent.replay_buffer.save(path) manually to save all episodes in this case
+                            print("Saving to buffer...")
                             self.replay_buffer.push(episodes[i])
-                        episodes[i] = Episode(current_states[i], info=info)
+                        episodes[i] = Episode(current_states[i, -1], info=info)
                         episode_step_counts[i] = 0
                 else:
                     # print("here:", current_states.shape)

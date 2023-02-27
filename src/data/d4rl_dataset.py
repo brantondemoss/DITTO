@@ -34,7 +34,11 @@ class D4RLDataset(Dataset):
 
     def fix_obs(self, img, new_hw=64, resize=True, sb3=False):
         """normalizes image"""
-        img = np.transpose(img, (1, 2, 0))
+        #img = np.transpose(img, (1, 2, 0))
+
+        # this only works for single channel images
+        # need to handle channels dim correctly if color/multichannel
+        img = np.squeeze(img)
         if resize:
             img = np.array(cv2.resize(img, dsize=(
                 new_hw, new_hw), interpolation=cv2.INTER_AREA))
