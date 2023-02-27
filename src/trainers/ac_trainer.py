@@ -392,9 +392,9 @@ class ACTrainer(object):
         return accuracy_per_step[0]
 
     def log_stats(self, metrics_dict):
-        if self.steps % 200 == 0:
-            val_metrics = self.validate()
-            wandb.log(val_metrics, step=self.steps)
+        # if self.steps % 200 == 0:
+        #     val_metrics = self.validate()
+        #     wandb.log(val_metrics, step=self.steps)
         wandb.log(metrics_dict, step=self.steps)
         self.steps += 1
 

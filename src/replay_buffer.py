@@ -41,7 +41,7 @@ class Episode(object):
         self.add_init_state(init_obs, info=info)
         self.action_dim = 4
 
-    def add_init_state(self, init_obs, reward=0, action=-1, terminal=False, info={}):
+    def add_init_state(self, init_obs, reward=0, action=np.array([0.1, 0.1, 0.1]), terminal=False, info={}):
         # print(info)
         self.push(init_obs, reward, action, terminal, info)
         # print(self.infos)
@@ -50,22 +50,23 @@ class Episode(object):
         img = img.astype(np.uint8)
         img = np.array(cv2.resize(img, dsize=(
             new_hw, new_hw), interpolation=cv2.INTER_AREA))
-        img = np.expand_dims(img, 2)
+        img = np.expand_dims(img, 0)
         return img
 
     def rgb2gray(self, rgb):
         return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
 
     def push(self, obs, reward, action, terminal, info):
-        # obs = self.reshape_img(obs)
+        obs = self.reshape_img(obs)
         # assert obs.shape == (84, 84, 1)
         self.observations.append(obs)
         self.rewards.append(reward)
         self.actions.append(action)
         self.terminals.append(terminal)
-        if "img" in info:
-            # print("here")
+        if "img" in info.keys():
             info["img"] = self.reshape_img(self.rgb2gray(info["img"]))
+        else:
+            print("AAAAHHH")
         self.infos.append(info)
         self.length += 1
 
@@ -97,15 +98,20 @@ class ReplayBuffer(object):
         if episode.vecobs:
             # print("Here")
             vecobs = np.array(episode.observations)
-            # print(episode.infos)
+            print(episode.infos[0]["img"].shape)
             images = np.array([info["img"] for info in episode.infos])
         else:
-            images = np.array(episode.observations)
+            #print(len(episode.infos))
+            # print(episode.infos.keys())
+            images = np.array([info for info in episode.infos])
 
         actions = np.array(episode.actions)
         rewards = np.array(episode.rewards)
         terminals = np.array(episode.terminals)
         resets = np.zeros((episode.length), dtype=bool)
+        print("Actions shape: {}".format(actions.shape))
+        print("Rewards shape: {}".format(rewards.shape))
+        print("Terminals shape: {}".format(terminals.shape))
         resets[0] = True
         print(f"{savepath}/episode-{self.size}")
         np.savez(f"{savepath}/episode-{self.size}", image=images, vecobs=vecobs,

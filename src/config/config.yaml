@@ -32,14 +32,14 @@ data:
         cached_features_path: "../data/atari_pong/pong-ppo-features.npz"
   beamrider:
     use_sb3: True
-    dataset_path: "/data/beamrider/ppo/episodes/"
+    dataset_path: "episodes/beamrider/"
     episode_limit: 15 #4, 8, 15
     world_models:
-      use_cached_features: True
+      use_cached_features: False
       sb3:
-        checkpoint_path: "../checkpoints/beamrider/ppo/"
-        wm_fname: "beamrider-ppo-best.pth"
-        cached_features_path: "../data/beamrider/beamrider-ppo-features.npz"
+        checkpoint_path: "checkpoints/beamrider/"
+        wm_fname: "sb3-model-1000000_steps.pth"
+        cached_features_path: "none"
   mspacman:
     use_sb3: True
     dataset_path: "/data/mspacman/ppo/episodes/"
@@ -109,7 +109,7 @@ envs:
     action_dim: 18
     observation_space: []
     action_type: "discrete"
-    action_dim: 9
+    #action_dim: 9
     pixel_stats:
       mean: 17.0
       std: 36.0

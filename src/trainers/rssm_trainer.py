@@ -35,12 +35,12 @@ class RSSMTrainer(object):
         model_path = root_conf.ac_trainer_config.wm_path
         print('Got model path', model_path)
         # this dict contains keys: steps, model_state_dict, optimizer_state_dict
-        checkpoint = torch.load(model_path)
-        self.start_steps = checkpoint['steps']
-        print('Got start_steps =',self.start_steps,'from loaded state dict')
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        print('loaded from state dict', model_path)
+        # checkpoint = torch.load(model_path)
+        self.start_steps = 0
+        # print('Got start_steps =',self.start_steps,'from loaded state dict')
+        # self.model.load_state_dict(checkpoint['model_state_dict'])
+        # self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        # print('loaded from state dict', model_path)
 
         self.scaler = GradScaler(enabled=True)
 

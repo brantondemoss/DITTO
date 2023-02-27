@@ -36,7 +36,7 @@ class Featurizer(object):
         self.wm_path = conf.wm_path
         self.batch_length = self.conf.seq_length
         self.batch_size = self.conf.batch_size
-
+        
         #self.groundtruth = np.load("/home/bdemoss/research/div-rl/data/breakout/valf/expertv2-features.npy")
 
     def get_features(self):

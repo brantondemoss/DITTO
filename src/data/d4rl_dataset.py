@@ -51,6 +51,7 @@ class D4RLDataset(Dataset):
         return resets
 
     def fix_actions(self, actions, reset, cats=18):
+        print(actions)
         """takes array of scalar actions and converts to one-hot.
         also offsets actions b/c dreamer uses pre-actions instead of post-actions"""
         ridxs = np.where(reset)[0]
@@ -76,6 +77,7 @@ class D4RLDataset(Dataset):
 
         filenames = glob.glob(path+'/*.npz')
         filenames = filenames[:1000]
+        print(filenames)
         print('got', len(filenames), 'files...')
 
         rewards=[]
@@ -83,19 +85,26 @@ class D4RLDataset(Dataset):
         for filename in tqdm(filenames, desc="loading files.."):
             npz_dict = np.load(filename,allow_pickle=True)
 
-            obs_key = "images" # or "observations" or "vecobs"
+            obs_key = "image" #"observations" # or "vecobs"
             
-            episode_length = len(npz_dict["actions"])
+            episode_length = len(npz_dict["action"])
             self.num_transitions += episode_length
-            resets = self.fix_terminals(npz_dict["terminals"])
+            resets = self.fix_terminals(npz_dict["terminal"])
+            resets[-1] = True
             data["reset"].extend(resets)
-            data["action"].extend(self.fix_actions(
-                npz_dict["actions"], resets))
+            data["action"].extend(
+                npz_dict["action"])
             data["obs"].extend([self.fix_obs(x, resize=True, sb3=True) #should resize be here?
                                 for x in npz_dict[obs_key]])
-            rewards.append(np.sum(npz_dict["rewards"]))
+            rewards.append(np.sum(npz_dict["reward"]))
         print("finished loading")
         
+        print(data["obs"][0].shape)
+
+        # print(np.array(data["action"]).shape)
+        # for i in range(len(data["action"])):
+        #     print(len(data["action"][i]))
+
         print("Reward min, max, mean, std", np.min(rewards), 
             np.max(rewards), np.mean(rewards), np.std(rewards))
         
@@ -115,8 +124,8 @@ class D4RLDataset(Dataset):
             episode_length = len(npz_dict["actions"])
             self.num_transitions += episode_length
             data["reset"].extend(self.fix_terminals(npz_dict["terminals"]))
-            data["action"].extend(self.fix_actions(
-                npz_dict["actions"], data["reset"]))
+            data["action"].extend(
+                npz_dict["actions"])
             data["obs"].extend([self.fix_obs(x)
                                 for x in npz_dict["observations"]])
         print("finished loading")

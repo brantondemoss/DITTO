@@ -11,6 +11,7 @@ def diag_normal(x, min_std=0.1, max_std=2.0):
     return D.independent.Independent(D.normal.Normal(mean, std), 1)
 
 def trunc_normal(x, min_std=0.1, max_std=2.0, min=-1, max=1):
+    print("trunc")
     mean, std = x.chunk(2, -1)
     std = max_std * torch.sigmoid(std) + min_std
     dist = D.independent.Independent(D.normal.Normal(mean, std), 1)
@@ -27,6 +28,7 @@ def normal_tanh(x, min_std=0.01, max_std=1.0):
     return normal
 
 def categorical(x):
+    print("cat")
     probs = F.softmax(x, dim=-1)
     return Categorical(probs)
 

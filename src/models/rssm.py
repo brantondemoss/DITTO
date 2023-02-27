@@ -29,6 +29,8 @@ class RSSMCore(nn.Module):
 
         (h, z) = in_state
         posts, states_h, samples = [], [], []
+        print("action shape tensor")
+        print(actions.shape)
         for i in range(T):
             post, (h, z) = self.cell.forward(actions[i], (h, z),
                                              reset_masks[i], embeds[i])
