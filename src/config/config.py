@@ -104,6 +104,7 @@ def build_data_config(raw_config, env_name):
     return data_conf
 
 
+
 def build_featurizer_config(dataset_config, wm_config):
     featurizer_config = config_dict.ConfigDict()
     featurizer_config.update(dataset_config)
@@ -121,7 +122,6 @@ def build_config(config_file, checkpoint=True):
     print('got env name', env_name)
     env_config = config_dict.ConfigDict(raw_config["envs"][env_name])
     data_conf = build_data_config(raw_config, env_name)
-    # print(data_conf)
     wm_config = build_wm_config(raw_config, env_config)
     trainer_config = build_wm_trainer_config(raw_config, data_conf)
     agent_config = build_agent_config(raw_config, env_name)
@@ -136,6 +136,7 @@ def build_config(config_file, checkpoint=True):
     config = config_dict.ConfigDict()
     config.raw = raw_config
     config.wm_config = wm_config
+    config.env_config = env_config
     config.dataset_config = dataset_config
     config.trainer_config = trainer_config
     config.ac_trainer_config = agent_config.ac_trainer_config
@@ -150,4 +151,4 @@ def build_config(config_file, checkpoint=True):
     if not checkpoint:
         config.ac_trainer_config.do_checkpoint = False
 
-    return config_dict.FrozenConfigDict(config)
+    return config_dict.ConfigDict(config)

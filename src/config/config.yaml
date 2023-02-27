@@ -1,5 +1,5 @@
 dreamer:
-  env: "beamrider"
+  env: "car_racing"
 
 data:
   data_keys: ["action", "obs", "reset"]
@@ -71,6 +71,17 @@ data:
         wm_fname: "spaceInvaders-a2c-best.pth"
         cached_features_path: "none"
 
+  car_racing:
+    use_sb3: True
+    dataset_path: "episodes/CarRacing-v0"
+    episode_limit: -1
+    world_models:
+      use_cached_features: True
+      sb3:
+        checkpoint_path: "checkpoints/CarRacing-v0/"
+        wm_fname: "model-500_steps.pth"
+        cached_features_path: "none"
+
 envs:
   breakout:
     env_id: "BreakoutNoFrameskip-v4"
@@ -78,6 +89,7 @@ envs:
     action_dim: 18
     observation_space: []
     action_type: "discrete"
+    action_dim: 4
     pixel_stats:
       mean: 33.0
       std: 55.0
@@ -87,6 +99,7 @@ envs:
     action_dim: 18
     observation_space: []
     action_type: "discrete"
+    action_dim: 6
     pixel_stats:
       mean: 106.0
       std: 47.0
@@ -96,6 +109,7 @@ envs:
     action_dim: 18
     observation_space: []
     action_type: "discrete"
+    action_dim: 9
     pixel_stats:
       mean: 17.0
       std: 36.0
@@ -111,7 +125,7 @@ envs:
   mspacman:
     env_id: "MsPacmanNoFrameskip-v4"
     observation_type: "pixels"
-    action_dim: 18
+    action_dim: 9
     observation_space: []
     action_type: "discrete"
     pixel_stats:
@@ -120,7 +134,7 @@ envs:
   qbert:
     env_id: "QbertNoFrameskip-v4"
     observation_type: "pixels"
-    action_dim: 18
+    action_dim: 6
     observation_space: []
     action_type: "discrete"
     pixel_stats:
@@ -129,9 +143,18 @@ envs:
   spaceInvaders:
     env_id: "SpaceInvadersNoFrameskip-v4"
     observation_type: "pixels"
-    action_dim: 18
+    action_dim: 6
     observation_space: []
     action_type: "discrete"
+    pixel_stats:
+      mean: 10.0
+      std: 25.0
+  car_racing:
+    env_id: "CarRacing-v0"
+    observation_type: "pixels"
+    action_dim: 3
+    observation_space: []
+    action_type: "trunc_normal"
     pixel_stats:
       mean: 10.0
       std: 25.0
@@ -140,7 +163,6 @@ agent:
   architecture:
     hidden_dim: 256
     layers: 8
-    action_dim: 4
   training:
     do_checkpoint: True
     batch_size: 512

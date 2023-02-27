@@ -22,14 +22,7 @@ from data.common import (ACSampler, MC_return, fix_obs, fix_obs_sb3,
 from models.a2c import ActorCritic, Discriminator
 from models.world_model import WorldModelRSSM
 from pyvirtualdisplay import Display
-from stable_baselines3.common.atari_wrappers import AtariWrapper
-from stable_baselines3.common.env_util import make_atari_env, make_vec_env
-from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import (DummyVecEnv, SubprocVecEnv,
-                                              VecFrameStack, VecMonitor,
-                                              VecNormalize, VecVideoRecorder,
-                                              is_vecenv_wrapped)
+from envs.utils import make_wm_env, WmEnv
 from torch.cuda.amp import autocast
 from torch.distributions import Categorical
 from torch.utils.data import DataLoader, Subset
@@ -56,26 +49,21 @@ class ACTrainer(object):
         self.batch_size = self.conf.batch_size
         self.seq_length = self.conf.seq_length
         self.unrolls = self.seq_length
+        self.action_type = conf.env_config.action_type
 
         self.env_name = self.conf.env_name
         self.env_id = self.conf.env_id
 
         # in_dim, out_dim
-        self.obs_dim = 2048
-        action_space ={"breakout": 4,
-        "atari_pong": 6,
-        "beamrider": 9,
-        "mspacman": 9,
-        "qbert": 6,
-        "spaceInvaders": 6}
-        self.action_dim = action_space[self.conf.env_name]
+        self.obs_dim = conf.wm_config.deter_dim + conf.wm_config.stoch_dim * conf.wm_config.stoch_rank
+        self.action_dim = conf.env_config.action_dim
         print('got action dim', self.action_dim)
         self.policy = ActorCritic(
-            obs_dim=self.obs_dim, action_dim=self.action_dim, hidden_dim=self.conf.hidden_dim, layers=self.conf.layers).to(self.device)
+            action_type=self.action_type, obs_dim=self.obs_dim, action_dim=self.action_dim, hidden_dim=self.conf.hidden_dim, layers=self.conf.layers).to(self.device)
         self.policy_gail =  ActorCritic(
-            obs_dim=self.obs_dim, action_dim=self.action_dim, hidden_dim=self.conf.hidden_dim, layers=self.conf.layers).to(self.device)
+            action_type=self.action_type, obs_dim=self.obs_dim, action_dim=self.action_dim, hidden_dim=self.conf.hidden_dim, layers=self.conf.layers).to(self.device)
         self.policy_bc =  ActorCritic(
-            obs_dim=self.obs_dim, action_dim=self.action_dim, hidden_dim=self.conf.hidden_dim, layers=self.conf.layers).to(self.device)
+            action_type=self.action_type, obs_dim=self.obs_dim, action_dim=self.action_dim, hidden_dim=self.conf.hidden_dim, layers=self.conf.layers).to(self.device)
         # self.policy = self.load_policy()
         # self.student = ActorCritic(self.obs_dim//2, 4).to(self.device)
         self.discrim = Discriminator(obs_dim=self.obs_dim).to(self.device)
@@ -88,7 +76,6 @@ class ACTrainer(object):
         self.optimizer_bc = optim.Adam(self.policy_bc.parameters(), lr=self.lr)
         self.discrim_optimizer = optim.Adam(self.discrim.parameters(), lr=self.lr)
         self.discrim_loss = nn.BCEWithLogitsLoss()
-        self.bc_loss = nn.CrossEntropyLoss()
 
         self.train_dataloader, self.val_dataloader = self.build_dataloaders(
             conf)
@@ -173,19 +160,21 @@ class ACTrainer(object):
 
         return max_cos
 
-    def get_action(self, latent, scalar=False, target=False, student=False, policy=None):
+    def get_action(self, latent, policy, scalar=False, target=False, student=False):
         if target:
-            action_probs, state_values, target_values = \
+            a_dist, state_values, target_values = \
                 policy.forward_t(latent)
         else:
-            action_probs, state_values = policy(latent)
-        a_dist = Categorical(action_probs)
+            a_dist, state_values = policy(latent)
         mean_entropy = a_dist.entropy().mean()
         a_hat = a_dist.sample()
-        a_onehot = torch.eye(18)[a_hat].to(self.device)
         log_prob = a_dist.log_prob(a_hat)
 
-        action = (a_hat.item(), a_onehot) if scalar else a_onehot
+        if policy.action_type == "discrete":
+            action = torch.eye(18)[a_hat].to(self.device)
+        else:
+            action = a_hat.to(self.device)
+        
         state_values = (
             state_values, target_values) if target else state_values
 
@@ -268,13 +257,9 @@ class ACTrainer(object):
         TB_actions = torch.reshape(
             post_actions, (-1, post_actions.shape[-1]))[..., :self.action_dim]
 
-        logits, action_probs = self.policy_bc.forward_actor(TB_latents)
-        a_dist = Categorical(action_probs)
+        BCLoss = self.policy_bc.get_bc_loss(TB_latents, TB_actions)
+        a_dist, _ = self.policy_bc.forward(TB_latents)
         entropy = a_dist.entropy().mean()
-
-        # Cross entropy loss
-        BCLoss = self.bc_loss(logits, TB_actions).mean()
-
         return BCLoss, entropy
 
     @staticmethod
@@ -499,30 +484,6 @@ class ACTrainer(object):
                        "val/returns_bc": wandb.Histogram(rewards_bc)}
         return val_metrics
 
-    def make_env(self, n_envs=1, original_fn=True, seed=None):
-
-        if self.env_name == "breakout" or True:
-            if original_fn:
-                print('original fn true')
-                env = gym.make(self.env_id)
-                env = AtariWrapper(env, clip_reward=False, screen_size=64)
-            else:
-                env = make_atari_env(self.env_id, n_envs=n_envs,
-                                     wrapper_kwargs={
-                                         "clip_reward": False, "screen_size": 64},
-                                     vec_env_cls=SubprocVecEnv, seed=seed)
-                env = WmEnv(env, self.world_model, n_envs, self.device, 18, 
-                            pixel_mean = self.conf.pixel_mean, pixel_std = self.conf.pixel_std)
-        elif self.env_name == "bipedalwalker":
-            print('REALLY FUCKED')
-            env = make_vec_env(self.env_id, n_envs=n_envs)
-            env = VecFrameStack(env, n_stack=1)
-            path = f"../third_party/rl-baselines3-zoo/rl-trained-agents/ppo/{self.env_id}_1/{self.env_id}/vecnormalize.pkl"
-            env = VecNormalize.load(path, env)
-            env = WmEnv(env, self.world_model, n_envs,
-                        self.device, self.conf.action_dim, use_render=True)
-        return env
-
     def get_action2(self, latent, scalar=False, target=False, student=False, epsilon=0.0, policy=None):
         action_probs, state_values = policy(latent)
         a_dist = Categorical(action_probs)
@@ -545,7 +506,14 @@ class ACTrainer(object):
         pbar = tqdm(total=n_games, leave=False, desc="test_agent2")
         #with open(os.devnull, 'w') as f:
         #    with redirect_stdout(f):
-        env = self.make_env(n_envs=n_envs, original_fn=False)
+        env = make_wm_env(
+                env_name=self.env_name,
+                env_id=self.env_id,
+                wm=self.world_model,
+                device=self.device,
+                n_envs=n_envs,
+                original_fn=False
+            )
 
         init_obs = env.reset()
         features = env.prep_obs(init_obs)
@@ -566,99 +534,3 @@ class ACTrainer(object):
                     rewards.append(info[i]["episode"]["r"])
                     pbar.update(1)
         return np.mean(rewards), np.max(rewards), np.min(rewards), np.std(rewards), rewards, actions
-
-
-class WmEnv(gym.Wrapper):
-
-    def __init__(self, env, wm, n_env, device, action_dim, use_render=False, pixel_mean = 33, pixel_std = 55):
-        self.wm = wm
-        self.action_dim = action_dim
-        self.n_env = n_env
-        self.in_states = self.wm.init_state(n_env)
-        self.pixel_mean = pixel_mean
-        self.pixel_std = pixel_std
-        self.device = device
-        self.observations = []
-        self.dones = 0
-        self.use_render = use_render
-        super().__init__(env)
-
-    def wm_step(self, latent, a_onehot):
-        with torch.no_grad():
-            h, z = latent.split([1024, 1024], -1)
-            with autocast(enabled=True):
-                (h, z) = self.world_model.dream(a_onehot, (h, z))
-
-            next_latent = torch.cat((h, z), dim=-1)
-        return next_latent
-
-    def reshape_img(self, img, new_hw=64):
-        img = img.astype(np.uint8)
-        img = np.array(cv2.resize(img, dsize=(
-            new_hw, new_hw), interpolation=cv2.INTER_AREA))
-        img = np.expand_dims(img, 2)
-        return img
-
-    def prep_obs(self, img, action=None, done=None, info=None):
-        img = img.astype(np.float32)
-        img = (img - self.pixel_mean) / self.pixel_std
-        # print("HERE", img.shape)
-        img = np.transpose(img, (0, 3, 1, 2))
-        img = np.expand_dims(img, 0)
-        img = torch.from_numpy(img)
-        img = img.to(self.device)
-
-        reset = torch.zeros((1, img.shape[1]), dtype=torch.bool)
-
-        if done is None:
-            action = torch.zeros(
-                (1, img.shape[1], self.action_dim)).to(self.device)
-            reset = torch.ones(
-                (1, img.shape[1]), dtype=torch.bool)
-        else:
-            d = [True if info[i]["lives"] == 0
-                 else False for i in range(len(done))]
-            reset[0, np.where(d)[0]] = 1
-            if len(action.shape) == 1:
-                action = torch.eye(self.action_dim)[
-                    action].unsqueeze(0).to(self.device)
-            idxs = np.where(done)[0]
-            if len(idxs) > 0:
-                action[:, idxs] = torch.zeros(
-                    (len(idxs), self.action_dim)).to(self.device)
-
-        obs = {"obs": img, "action": action, "reset": reset.to(self.device)}
-        features, out_states = self.wm(obs, self.in_states)
-        self.in_states = out_states
-        features = features.squeeze()
-        return features
-
-    def step(self, action):
-        # print(action.item())
-        #print(action)
-        obs, reward, done, info = self.env.step(action)
-        if self.use_render:
-            obs = self.env.render(mode="rgb_array")
-            obs = np.dot(obs[..., :3], [0.2989, 0.5870, 0.1140])
-            obs = self.reshape_img(obs)
-            obs = np.expand_dims(obs, 0)
-        latent = self.prep_obs(obs, action, done, info)
-        if isinstance(info, dict):
-            info["obs"] = obs
-        else:
-            for i in range(len(info)):
-                info[i]["obs"] = obs[i]
-
-        return latent, reward, done, info
-
-    def reset(self, **kwargs):
-        obs = self.env.reset(**kwargs)
-        if self.use_render:
-            obs = self.env.render(mode="rgb_array")
-            # print("HERE:", obs.shape)
-            obs = self.reshape_img(
-                np.dot(obs[..., :3], [0.2989, 0.5870, 0.1140]))
-            obs = np.expand_dims(obs, 0)
-        # latent = self.prep_obs(obs)
-        # exit()
-        return obs
