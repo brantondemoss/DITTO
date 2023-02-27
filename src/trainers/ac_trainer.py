@@ -27,6 +27,11 @@ from torch.cuda.amp import autocast
 from torch.distributions import Categorical
 from torch.utils.data import DataLoader, Subset
 from tqdm.auto import tqdm, trange
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import (DummyVecEnv, SubprocVecEnv,
+                                              VecFrameStack, VecMonitor,
+                                              VecNormalize, VecVideoRecorder,
+                                              is_vecenv_wrapped)
 
 #display = Display(visible=0, size=(400, 300))
 #display.start()
@@ -171,7 +176,7 @@ class ACTrainer(object):
         log_prob = a_dist.log_prob(a_hat)
 
         if policy.action_type == "discrete":
-            action = torch.eye(18)[a_hat].to(self.device)
+            action = torch.eye(18, device=self.device)[a_hat].to(self.device)
         else:
             action = a_hat.to(self.device)
         
@@ -485,8 +490,7 @@ class ACTrainer(object):
         return val_metrics
 
     def get_action2(self, latent, scalar=False, target=False, student=False, epsilon=0.0, policy=None):
-        action_probs, state_values = policy(latent)
-        a_dist = Categorical(action_probs)
+        a_dist, state_values = policy(latent)
         a_hat = a_dist.sample()
 
         # if epsilon > np.random.rand: 
@@ -507,6 +511,7 @@ class ACTrainer(object):
         #with open(os.devnull, 'w') as f:
         #    with redirect_stdout(f):
         env = make_wm_env(
+                conf=self.conf,
                 env_name=self.env_name,
                 env_id=self.env_id,
                 wm=self.world_model,

@@ -7,7 +7,8 @@ from stable_baselines3.common.vec_env import (DummyVecEnv, SubprocVecEnv,
                                               VecNormalize, VecVideoRecorder,
                                               is_vecenv_wrapped)
 import gym
-
+import numpy as np
+import torch
 
 def make_wm_env(env_name, env_id, wm, conf, device="cpu", n_envs=1, original_fn=True, seed=None):
     atari_envs = ["breakout", "qbert", "spaceInvaders", "mspacman", "beamrider"]
