@@ -9,6 +9,7 @@ from trainers.ac_trainer import ACTrainer
 from trainers.bc_trainer import BCTrainer
 from trainers.rssm_trainer import RSSMTrainer
 
+#from ditto.trainers.rssm_trainer import RSSMTrainer
 
 def load_conf(config_file, env_name):
     with open(config_file, "r") as f:
@@ -26,7 +27,8 @@ def load_conf(config_file, env_name):
 def wm_train(conf):
     wandb.login()
     wandb.init(project="world-model", config=conf.to_dict(),
-               settings=wandb.Settings(code_dir="."))
+               settings=wandb.Settings(code_dir="."),
+               mode="disabled")
     wandb.run.log_code(".")
     trainer = RSSMTrainer(conf)
     wandb.watch(trainer.model)
@@ -61,8 +63,8 @@ def main(conf_path=None):
     conf = build_config(config_file)
     # print(conf)
     # ac_train(conf)
-    bc_train(conf)
-    # wm_train(conf)
+    #bc_train(conf)
+    wm_train(conf)
 
 
 if __name__ == "__main__":
@@ -71,4 +73,5 @@ if __name__ == "__main__":
         conf_path = sys.argv[1]
         print('got conf', conf_path)
 
+    conf_path = "/home/alex/repos/DITTO/src/config/config_calvin.yaml"
     main(conf_path=conf_path)
