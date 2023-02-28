@@ -3,6 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm.auto import tqdm 
 import glob
 import numpy as np
+import cv2
 #from src.common import EquiSampler, transpose_collate
 
 class CalvinDataset(Dataset):
@@ -45,9 +46,9 @@ class CalvinDataset(Dataset):
             data["action"].extend(self._fix_actions(npz_dict["actions"]))
             data["obs"].extend(self._fix_obs(npz_dict[obs_key]))
             if idx in start_ids:
-                data["reset"].extend([[True]])
+                data["reset"].extend([True])
             else:
-                data["reset"].extend([[False]])
+                data["reset"].extend([False])
 
             # files: ['actions', 'rel_actions', 'robot_obs', 'scene_obs', 'rgb_static', 'rgb_gripper', 'rgb_tactile', 'depth_static', 'depth_gripper', 'depth_tactile']
         
@@ -56,11 +57,23 @@ class CalvinDataset(Dataset):
         data["reset"] = data["reset"].bool()
         return data
             
-    def _fix_obs(self, img):
+    def _fix_obs(self, img, new_hw=64, resize=True):
         img = np.moveaxis(img, -1, 0)
+        
+        if resize:
+            new_img = np.empty((3, new_hw, new_hw))
+            img = np.squeeze(img)  # 3, 200, 200
+            for i in range(img.shape[0]):
+                new_img[i] = np.array(cv2.resize(img[i], dsize=(
+                    new_hw, new_hw), interpolation=cv2.INTER_AREA)) 
+            img = new_img
+            
         img = np.expand_dims(img, 0)
+        img = img.astype(np.float32)
         img = (img - self.pixel_mean) / self.pixel_std
+        
         return img
+        
             
     def _fix_actions(self, action):
         action = np.expand_dims(action, 0)
@@ -73,29 +86,17 @@ class CalvinDataset(Dataset):
     def __len__(self):
         return self.num_transitions
     
-    def __getitem__(self, idx):
+    def __getitem__(self, idx):    
         end_idx = idx+self.seq_length
-        
-        if idx == 0:
-            data = \
-                [self.data[key][idx:end_idx] for key in self.data_keys]
-            data = [torch.concatenate((t[0][None], t[:]), dim=0) for t in data] 
-        else:
-            data = \
-                [self.data[key][idx-1:end_idx] for key in self.data_keys]
-                
         action, obs, reset = \
-            [torch.stack((t[:-1], t[1:]), dim=1) for t in data]  # Add extra frame
-                           
+            [self.data[key][idx:end_idx] for key in self.data_keys]
+        
         pad_size = end_idx-self.num_transitions
         if pad_size>0:
-            p_data = [self.data[key][:pad_size] for key in self.data_keys]        
-            p_data = [torch.concatenate((t[0][None], t[:]), dim=0) for t in p_data]            
-            p_action, p_obs, p_reset = [torch.stack((t[:-1], t[1:]), dim=1) for t in p_data]
-                        
-            action = torch.cat((action, p_action), dim=0)
-            obs = torch.cat((obs, p_obs), dim=0)
-            reset = torch.cat((reset, p_reset), dim=0)
+            action = torch.cat((action, self.data['action'][:pad_size]), dim=0)
+            obs = torch.cat(
+                (obs, self.data['obs'][:pad_size]), dim=0)
+            reset = torch.cat((reset, self.data['reset'][:pad_size]), dim=0)
         
         # TODO  ask Branton why this does not throw an error. seems like the above line will throw an error first tho
         

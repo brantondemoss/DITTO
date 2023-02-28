@@ -1,6 +1,5 @@
 import wandb
-
-
+import numpy as np
 class MetricsHelper:
     def __init__(self, pixel_mean, pixel_std, do_val=True):
         # self.batch_size = batch_size
@@ -51,7 +50,12 @@ class MetricsHelper:
         img2 = self.unnormalize(decoded_img)
         img3 = self.unnormalize(pred_img)
 
-        image1 = wandb.Image(img1, caption="orig")
+        if img1.shape[0] == 3:
+            img1 = np.transpose(img1, (1, 2, 0))
+            img2 = np.transpose(img2, (1, 2, 0))
+            img3 = np.transpose(img3, (1, 2, 0))
+
+        image1 = wandb.Image(img1, caption="orig")  # TODO TRANSPOSE SO THAT CHANNELS ARE LAST YAYA FUN TIMES
         image2 = wandb.Image(img2, caption="z reconst")
         image3 = wandb.Image(img3,  caption="z_hat reconst")
 

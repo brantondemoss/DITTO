@@ -27,7 +27,7 @@ envs:
     observation_type: "pixels"
     action_dim: 7
     observation_space: []
-    action_type: "continuous" # TODO update
+    action_type: "continuous" # TODO integrate
     pixel_stats:
       mean: 138.9931
       std: 65.1393
@@ -54,7 +54,7 @@ agent:
 
 wm: #wm_config
   training: # trainer_config
-    batch_size: 50
+    batch_size: 4
     seq_length: 50
     validation:
       do_val: True

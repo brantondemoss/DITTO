@@ -41,7 +41,8 @@ class CnnEncoder(nn.Module):
             nn.Conv2d(d * 4, d * 8, kernels[3], stride),
             activation(),
             nn.Flatten(),
-        )
+        ) # NOTE THIS IS NOT GENERAL add layer to make output into size 4, 1536
+        # NEED TO downsample images to 64x64, 
 
     def forward(self, x):
         B, T = x.shape[:2]
