@@ -45,9 +45,9 @@ class CalvinDataset(Dataset):
             data["action"].extend(self._fix_actions(npz_dict["actions"]))
             data["obs"].extend(self._fix_obs(npz_dict[obs_key]))
             if idx in start_ids:
-                data["reset"].extend([True])
+                data["reset"].extend([[True]])
             else:
-                data["reset"].extend([False])
+                data["reset"].extend([[False]])
 
             # files: ['actions', 'rel_actions', 'robot_obs', 'scene_obs', 'rgb_static', 'rgb_gripper', 'rgb_tactile', 'depth_static', 'depth_gripper', 'depth_tactile']
         
@@ -75,16 +75,27 @@ class CalvinDataset(Dataset):
     
     def __getitem__(self, idx):
         end_idx = idx+self.seq_length
-        action, obs, reset = \
-            [self.data[key][idx:end_idx] for key in self.data_keys]
         
+        if idx == 0:
+            data = \
+                [self.data[key][idx:end_idx] for key in self.data_keys]
+            data = [torch.concatenate((t[0][None], t[:]), dim=0) for t in data] 
+        else:
+            data = \
+                [self.data[key][idx-1:end_idx] for key in self.data_keys]
+                
+        action, obs, reset = \
+            [torch.stack((t[:-1], t[1:]), dim=1) for t in data]  # Add extra frame
+                           
         pad_size = end_idx-self.num_transitions
         if pad_size>0:
-            print(f' pad size >0, end idx {end_idx}, {self.num_transitions} idx {idx}')
-            action = torch.cat((action, self.data['action'][:pad_size]), dim=0)
-            obs = torch.cat(
-                (obs, self.data['obs'][:pad_size]), dim=0)
-            reset = torch.cat((reset, self.data['reset'][:pad_size]), dim=0)
+            p_data = [self.data[key][:pad_size] for key in self.data_keys]        
+            p_data = [torch.concatenate((t[0][None], t[:]), dim=0) for t in p_data]            
+            p_action, p_obs, p_reset = [torch.stack((t[:-1], t[1:]), dim=1) for t in p_data]
+                        
+            action = torch.cat((action, p_action), dim=0)
+            obs = torch.cat((obs, p_obs), dim=0)
+            reset = torch.cat((reset, p_reset), dim=0)
         
         # TODO  ask Branton why this does not throw an error. seems like the above line will throw an error first tho
         
