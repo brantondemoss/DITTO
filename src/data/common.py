@@ -96,7 +96,8 @@ class ACSampler(Sampler):
     def __len__(self):
         return self.n_steps
 
-def lambda_return(rewards, values, lambda_=0.95, gamma=0.99):
+# TODO: Implement inverse discounting to prioritize long-horizon rewards
+def lambda_return(rewards, values, lambda_=0.95, gamma=0.99, inverse=False):
     """
     \lambda return recursive definition, according to Dreamerv2 paper:
 
@@ -131,6 +132,12 @@ def MC_return(latent_rewards, bootstrap, norm=False, gamma=0.99, eps=1e-8):
     if norm:
         returns = (returns - returns.mean()) / (returns.std() + eps)
     return returns
+
+def symlog(x):
+    return torch.sign(x) * torch.log(1 + torch.abs(x))
+
+def symexp(x):
+    return torch.sign(x) * (torch.exp(torch.abs(x)) - 1)
 
 def get_d4rl_data(dataset_name):
     sys.stdout = open(os.devnull, 'w')

@@ -59,7 +59,7 @@ def ac_train(conf):
 
 
 def main(conf_path=None):
-    config_file = "config/config.yaml" if conf_path is None else conf_path
+    config_file = "config/test_config.yaml" if conf_path is None else conf_path
     conf = build_config(config_file)
     # print(conf)
     # ac_train(conf)
